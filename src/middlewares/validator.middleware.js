@@ -1,6 +1,6 @@
 import {validationResult} from 'express-validator'
 import {ApiError} from "../utils/api-error.js"
-export const  validate = (req,res,next)=>{
+export const  validate = async (req,res,next)=>{
     const errors = validationResult(req)
     // TODO Understand this error with making log
 
@@ -16,5 +16,5 @@ export const  validate = (req,res,next)=>{
         })
     })
 
-    throw new ApiError(422,"Resived data is not valid.",extractedError);
+    console.log( new ApiError(422,"Resived data is not valid.",extractedError));
 }
