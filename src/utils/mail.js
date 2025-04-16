@@ -60,5 +60,23 @@ export const emailVerificationMailGenContent = (username,verificationUrl)=>{
     }
 }
 
+export const forgetPasswordMailGenContent = (username,verificationUrl)=>{
+    return {
+        body:{
+            name:username,
+            intro:"Wellcome Back to our App!We are helping to reset Your password.",
+            action: {
+                instructions: 'To reset your password , please click here:',
+                button: {
+                    color: '#22BC66', // Optional action button color
+                    text: 'Reset your password.',
+                    link: verificationUrl,
+                }
+            },
+            outro: 'Need help, or have questions? Just reply to this email, we\'d love to help.'
+        }
+    }
+}
+
 
 

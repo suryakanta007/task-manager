@@ -29,9 +29,39 @@ const userRegistationValidator = ()=>{
 }
 
 const userLoginValidator = ()=>{
-    return []
+    return [
+        body("email")
+            .trim()
+            .notEmpty().withMessage("Email is must be required to login.")
+            .isEmail().withMessage("Email is not valid email.")
+        ,
+        body("password")
+        .trim()
+        .notEmpty().withMessage("Password is required.")
+
+    ]
+}
+
+const resetPasswordValidator = ()=>{
+    return [
+        body("password")
+            .trim()
+            .notEmpty().withMessage("Password is required.")
+            .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/).withMessage("Password must be contain atleast one lowercase,Uppercase,number")
+        ,
+        body('confirmPassword')
+            .trim()
+            .notEmpty().withMessage("Confirm Password is required.")
+            .custom((value, { req }) => {
+              if (value !== req.body.password) {
+               return false;
+              }
+              return true;
+            })
+            .withMessage('Password confirmation does not match password')          
+    ]
 }
 
 
 
-export {userRegistationValidator}
+export {userRegistationValidator,userLoginValidator,resetPasswordValidator}

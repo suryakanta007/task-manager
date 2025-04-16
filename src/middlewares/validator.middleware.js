@@ -17,4 +17,5 @@ export const  validate = async (req,res,next)=>{
     })
 
     console.log( new ApiError(422,"Resived data is not valid.",extractedError));
+    return res.status(422).json(new ApiError(422,"Resived data is not valid.",extractedError))
 }

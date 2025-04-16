@@ -98,10 +98,19 @@ userSchema.methods.genrateRefreshToken = async function(){
 }
 
 userSchema.methods.genrateTemoraryToken = async function(){
-    const  unHashedToken = crypto.randomBytes(20).toString("hex");;
+    const  unHashedToken = crypto.randomBytes(20).toString("hex");
     const hashedToken = crypto.createHash('sha256').update(unHashedToken).digest("hex");
     const tokenExpiry = Date.now() + (20*60*1000) //20min add
     return {hashedToken,unHashedToken,tokenExpiry}
+}
+
+userSchema.methods.genrateForgetPasswordToken = async function(){
+    const  unHashedToken = crypto.randomBytes(20).toString("hex");
+    const hashedToken = crypto.createHash('sha256').update(unHashedToken).digest("hex");
+    const tokenExpiry = Date.now() + (20*60*1000) //20min add
+    this.forgetPasswordToken = hashedToken
+    this.forgetPasswordExpiry = tokenExpiry
+    return unHashedToken
 }
 
 export const User = mongoose.model("User",userSchema);
