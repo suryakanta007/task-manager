@@ -113,6 +113,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const refreshToken = await existingUser.genrateRefreshToken();
     existingUser.refreshToken = refreshToken;
     await existingUser.save();
+    console.log(existingUser);
     res.cookie("accessToken", accesstoken, {
         httpOnly: true,
         secure: true,
@@ -143,12 +144,12 @@ const forgetPassword = asyncHandler(async (req, res) => {
     if (!email) {
         return res.status(402).json(new ApiError(402, "Email is not provided"));
     }
-    
+
     const user = await User.findOne({ email });
     if (!user) {
         return res.status(404).json(new ApiError(404, "User not Found."));
     }
-    const unhashedToken =await user.genrateForgetPasswordToken();
+    const unhashedToken = await user.genrateForgetPasswordToken();
     await user.save();
     const resetPasswordUrl = `${process.env.BASE_URL}/api/v1/auth/reset-password/${unhashedToken}`
     const mailOptions = {
@@ -186,41 +187,123 @@ const resetPassword = asyncHandler(async (req, res) => {
         { forgetPasswordExpiry: { $gt: Date.now() } }]
     })
 
-    if(!user){
-        return res.status(404).json(new ApiError(404,"User not found with the token."))
+    if (!user) {
+        return res.status(404).json(new ApiError(404, "User not found with the token."))
     }
 
     user.password = password;
     user.forgetPasswordToken = undefined;
     user.forgetPasswordExpiry = undefined;
     await user.save()
-    return res.status(200).json(new ApiResponse(200,"Password Reset SuccessFully."));
+    return res.status(200).json(new ApiResponse(200, "Password Reset SuccessFully."));
 })
 
-const logoutUser = asyncHandler(async(req,res)=>{
+const logoutUser = asyncHandler(async (req, res) => {
     //!logout controller
-  //banda logged in hum authenticate kara rahe hai
-  // uske id ko req.user se access kar saket hai .
-  //us id se user find karlenge and refreshToken ko "" set karenge
-  // cokkes ko bhi khali kaenge
-  //response bhejdenge ki bhai user logout ho gaya.
-  const {_id}  = req.user
+    //banda logged in hum authenticate kara rahe hai
+    // uske id ko req.user se access kar saket hai .
+    //us id se user find karlenge and refreshToken ko "" set karenge
+    // cokkes ko bhi khali kaenge
+    //response bhejdenge ki bhai user logout ho gaya.
+    const { _id } = req.user
 
-  console.log(_id)
+    console.log(_id)
 
-  const user = await User.findById(_id).updateOne({refreshToken:""});
-    if(!user){
-        return res.status(404).json(new ApiError(404,"User not found."))
+    const user = await User.findById(_id).updateOne({ refreshToken: "" });
+    if (!user) {
+        return res.status(404).json(new ApiError(404, "User not found."))
     }
-  res.cookie("accessToken","");
-  res.cookie("refreshToken","");
+    res.cookie("accessToken", "");
+    res.cookie("refreshToken", "");
 
-  return res.status(200).json(new ApiResponse(200,"User logout Successfully."));
+    return res.status(200).json(new ApiResponse(200, "User logout Successfully."));
 
 })
 
-const refreshAccessTokenHandler = asyncHandler(async(req,res)=>{
-    
+const refreshAccessTokenHandler = asyncHandler(async (req, res) => {
+    const { refreshToken } = req.cookies
+    if (!refreshToken) {
+        return res.status(402).json(new ApiError(402, "Refresh token is not present."))
+    }
+
+    try {
+        const decoded = await jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+        const user = await User.findById(decoded._id).select("-password -refreshToken");
+        if (!user) {
+            return res.status(402).json(new ApiError(402, "User is not found."));
+        }
+
+        const newRefreshToken = await user.genrateRefreshToken();
+        const accessToken = await user.genrateAccessToken();
+        user.refreshToken = newRefreshToken;
+        await user.save();
+
+        res.cookie("accessToken", accessToken, {
+            httpOnly: true,
+            secure: true,
+            maxAge: 15 * 60 * 1000
+        })
+        res.cookie("refreshToken", newRefreshToken, {
+            httpOnly: true,
+            secure: true,
+            maxAge: 24 * 60 * 60 * 1000
+        })
+
+        return res.status(200).json(new ApiResponse(200, "Refresh Token Created Successfully."));
+
+    } catch (error) {
+        console.log((new ApiError(401, "Invalid token or expired.")), "\nerror :", error);
+        return next(new ApiError(401, "Invalid token or expired."))
+    }
 })
 
-export { registerUser, veryfiEmail, loginUser, forgetPassword, resetPassword,logoutUser ,refreshAccessTokenHandler }
+
+const resendEmailVerification = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+        return res.status(404).json(new ApiError(404, "User not found by with this email."))
+    }
+    const { hashedToken, unHashedToken, tokenExpiry } = await user.genrateTemoraryToken();
+    user.emailVerificationToken = hashedToken;
+    user.emailVerificationExpiry = tokenExpiry;
+    const verificationUrl = `${process.env.BASE_URL}/api/v1/auth/verify/${unHashedToken}`
+    const mailOptions = {
+        email,
+        subject: "Veryfication email.",
+        mailgenContent: emailVerificationMailGenContent(username, verificationUrl)
+    }
+
+    await sendMail(mailOptions);
+    return res.status(200).json(new ApiResponse(200, "Verfication url send successfully."));
+
+});
+
+
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+    const { password, newPassword, confirmPassword } = req.body;
+    const { _id, email, username } = req.user;
+
+    const user = await User.findById(_id);
+    console.log(user    )
+    const isOldPAsswordMathed = user.isPasswordCorrect(password);
+    if (!isOldPAsswordMathed) {
+        return res.status(402).json(new ApiError(402, "Old password is not matched."))
+    }
+    user.password = newPassword;
+    await user.save()
+
+    return res.status(200).json(new ApiResponse(200, "Password changed successfully."));
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+    const { _id } = req.user;
+    const user = await User.findById(_id).select("-password -refreshToken");
+    if(!user){
+        return res.status(404).json(new ApiError(404, "User not found."))
+    }
+    return res.status(200).json(new ApiResponse(200, "User found successfully.", user));
+});
+
+
+export { registerUser, veryfiEmail, loginUser, forgetPassword, resetPassword, logoutUser, refreshAccessTokenHandler, resendEmailVerification, changeCurrentPassword,getCurrentUser }

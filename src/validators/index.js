@@ -1,7 +1,7 @@
-import {body} from "express-validator"
+import { body } from "express-validator"
 
 
-const userRegistationValidator = ()=>{
+const userRegistationValidator = () => {
     return [
         body('email')
             .trim()
@@ -11,14 +11,14 @@ const userRegistationValidator = ()=>{
         body("username")
             .trim()
             .notEmpty().withMessage("Username is required. ")
-            .isLength({max:13}).withMessage("Username can't exceed 13 char.")
-            .isLength({min:3}).withMessage("Username should be atleast 3.")
+            .isLength({ max: 13 }).withMessage("Username can't exceed 13 char.")
+            .isLength({ min: 3 }).withMessage("Username should be atleast 3.")
         ,
         body("password")
             .trim()
             .notEmpty().withMessage("Password is required.")
-            .isLength({min:6}).withMessage("Password atlist 6char long")
-            .isLength({max:20}).withMessage("Password should not 20char long.")
+            .isLength({ min: 6 }).withMessage("Password atlist 6char long")
+            .isLength({ max: 20 }).withMessage("Password should not 20char long.")
             .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/).withMessage("Password must be contain atleast one lowercase,Uppercase,number")
         ,
         body("fullName")
@@ -28,7 +28,7 @@ const userRegistationValidator = ()=>{
     ]
 }
 
-const userLoginValidator = ()=>{
+const userLoginValidator = () => {
     return [
         body("email")
             .trim()
@@ -36,13 +36,13 @@ const userLoginValidator = ()=>{
             .isEmail().withMessage("Email is not valid email.")
         ,
         body("password")
-        .trim()
-        .notEmpty().withMessage("Password is required.")
+            .trim()
+            .notEmpty().withMessage("Password is required.")
 
     ]
 }
 
-const resetPasswordValidator = ()=>{
+const resetPasswordValidator = () => {
     return [
         body("password")
             .trim()
@@ -53,15 +53,40 @@ const resetPasswordValidator = ()=>{
             .trim()
             .notEmpty().withMessage("Confirm Password is required.")
             .custom((value, { req }) => {
-              if (value !== req.body.password) {
-               return false;
-              }
-              return true;
+                if (value !== req.body.password) {
+                    return false;
+                }
+                return true;
             })
-            .withMessage('Password confirmation does not match password')          
+            .withMessage('Password confirmation does not match password')
+    ]
+}
+
+const changePasswordValidator = () => {
+    return [
+        body("password")
+            .trim()
+            .notEmpty().withMessage("Password is required.")
+            .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/).withMessage("Password must be contain atleast one lowercase,Uppercase,number")
+        ,
+        body("newPassword")
+            .trim()
+            .notEmpty().withMessage("newPassword is required.")
+            .matches(/^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/).withMessage("newPassword must be contain atleast one lowercase,Uppercase,number")
+        ,
+        body('confirmPassword')
+            .trim()
+            .notEmpty().withMessage("Confirm Password is required.")
+            .custom((value, { req }) => {
+                if (value !== req.body.password) {
+                    return false;
+                }
+                return true;
+            })
+            .withMessage('Password confirmation does not match password')
     ]
 }
 
 
 
-export {userRegistationValidator,userLoginValidator,resetPasswordValidator}
+export { userRegistationValidator, userLoginValidator, resetPasswordValidator,changePasswordValidator }
