@@ -2,6 +2,7 @@ import express from "express"
 import cookieParser from "cookie-parser";
 import healthCheckRouter from "./routes/healthcheck.routes.js"
 import userRoutes from "./routes/auth.routes.js"
+import projectRoutes from "./routes/project.routes.js"
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -23,7 +24,8 @@ app.use("/public", express.static(path.join(dirname, "../public")));
 
 
 app.use("/api/v1/healthcheck",healthCheckRouter);
-app.use("/api/v1/auth/",userRoutes)
+app.use("/api/v1/auth/",userRoutes);
+app.use("/api/v1/project/",projectRoutes);
 app.get("/",(req,res)=>{
     req.send("Server basic is ok.")
 })
