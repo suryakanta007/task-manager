@@ -4,89 +4,239 @@ import { ApiError } from "../utils/api-error.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { User } from "../models/user.model.js";
 import { Project } from "../models/project.model.js";
+import { } from "../utils/constants.js";
+import { ProjectMember } from "../models/project-member.model.js";
 
 
 
-const getProjects = async (req, res) => {
-      const userId = req.user._id;
+const getProjects = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
 
-      const allProjects = await Project.find({createdBy:userId});
-      if(!allProjects){
-        return res.status(404).json(new ApiError(404,"Project not found."))
-      }
+  const allProjects = await Project.find({ createdBy: userId });
+  if (!allProjects) {
+    return res.status(404).json(new ApiError(404, "Project not found."))
+  }
 
-      return res.status(200).json(new ApiResponse(200,"All project are here.",allProjects));
-  };
-  
-  const getProjectById = async (req, res) => {
-    // get project by id
-  };
-  
-  const createProject = asyncHandler(async (req, res) => {
-    const {name,description} = req.body;
-    const userId = req.user._id;
+  return res.status(200).json(new ApiResponse(200, "All project are here.", allProjects));
+})
 
-    if(!name||!description){
-      return res.status(402).json(new ApiError(402,"All project fildes are required."))
-    }
-    if(!userId){
-      return res.status(401).json(new ApiError(401,"user id is not present."))
-    }
+const getProjectById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  if (!projectId) {
+    return res.status(402).json(new ApiError(402, "Prjectid is required."));
+  }
 
-    const isProjectExsit = await Project.findOne({name});
-    if(isProjectExsit){
-      return res.status(403).json(new ApiError(403,"Project is already created."))
-    }
-    const newProject = await Project.create({
-      name,
-      description,
-      createdBy : userId
-    })
+  const project = await Project.findById(id);
+  if (!project) {
+    return res.status(404).json(new ApiError(404, "Project not found."))
+  }
 
-    if(!newProject){
-      return res.status(500).json(new ApiError(500,"Project is not created in DB."))
-    }
+  return res.json(200).json(new ApiResponse(200, "Project is found.", project))
+})
 
-    return res.status(200).json(new ApiResponse(200,"Project is created.",newProject));
+const createProject = asyncHandler(async (req, res) => {
+  const { name, description } = req.body;
+  const userId = req.user._id;
+
+  if (!name || !description) {
+    return res.status(402).json(new ApiError(402, "All project fildes are required."))
+  }
+  if (!userId) {
+    return res.status(401).json(new ApiError(401, "user id is not present."))
+  }
+
+  const isProjectExsit = await Project.findOne({ name });
+  if (isProjectExsit) {
+    return res.status(403).json(new ApiError(403, "Project is already created."))
+  }
+  const newProject = await Project.create({
+    name,
+    description,
+    createdBy: userId
+  })
+
+  if (!newProject) {
+    return res.status(500).json(new ApiError(500, "Project is not created in DB."))
+  }
+
+  return res.status(200).json(new ApiResponse(200, "Project is created.", newProject));
 
 });
-  
-  const updateProject = async (req, res) => {
-    // update project
-  };
-  
-  const deleteProject = asyncHandler(async (req, res) => {
 
-      // const {projectId} =  
+const updateProject = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, description } = req.body;
+  if (!name && !description) {
+    return res.status(402).json(new ApiError(402, "Noting to Delete."));
+  }
+  const updateProject = await Project.findByIdAndUpdate(
+    {
+      _id: id
+    },
+    {
+      $set: {
+        name,
+        description
+      }
+    },
+    {
+      new: true // return updated document.
+    }
+  )
 
-    
+  if (!updateProject) {
+    return res.status(502).json(502, "The project data is not updated in the db.");
+  }
+
+  return res.status(200).json(new ApiResponse(200, "Update the project successfully", updateProject));
+});
+
+const deleteProject = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+
+  if (!projectId) {
+    return res.status(402).json(new ApiError(402, "Project id is required."));
+  }
+
+  const deleteProject = await Project.findByIdAndDelete(projectId);
+  if (!deleteProject) {
+    return res.status(500).json(new ApiError(500, "THe project is not deleted succusfully"))
+  }
+
+  return res.status(200).json(new ApiResponse(200, "Project Deleted successfuly."))
+})
+
+const getProjectMembers = asyncHandler(async (req, res) => {
+    const {projectId } = req.params;
+    if(!projectId){
+      return res.status(402).json(new ApiError(402,"Project is not present."))
+    }
+
+    const projectMembers = await ProjectMember.find({project:projectId});
+    if(!projectMembers){
+      return res.status(404).json(new ApiError(404,"Project member is not Found."))
+    }
+
+    return res.status(200).json(new ApiResponse(200,"Project members Found", projectMembers));
+
+});
+
+const addMemberToProject = asyncHandler(async (req, res) => {
+  const memberId = req.body.memberId;
+  const { projectId } = req.params;
+
+  if (!memberId) {
+    return res.status(402).json(new ApiError(402, "Membert id is required to add member to project."));
+  }
+
+  if(!projectId){
+    res.status(402).json(new ApiError(402,"Project id is required to add member to project."));
+  }
+
+  const isProjectExsit = await Project.findById(projectId);
+  if(!isProjectExsit){
+    return res.status(404).json(new ApiError(404,"Project not found."))
+  }
+  const isMemberExsit = await User.find({$and:{_id:projectId,isEmailVerified:true}});
+  if(!isMemberExsit){
+    return res.status(402).json("User is not found or not verified.")
+  }
+
+  const isProjectMemberExsit = await ProjectMember.aggregate(
+    {
+      $match:{project:projectId}
+    },
+    {
+      $match:{user:memberId}
+    }
+  )
+  if(isProjectMemberExsit){
+    return res.status(403).json(new ApiError(403,"Member is already added to project."));
+  }
+
+  const newProjectMember =await ProjectMember.create(
+    {
+      user:memberId,
+      project:projectId
+    }
+  )
+  if(!newProjectMember){
+    return res.status(500).json(500,"New Mbmber is added ")
+  }
+
+  return res.status(200).json(new ApiResponse(200,"Project member is added.",newProjectMember));
+
+});
+
+const deleteMember = asyncHandler(async (req, res) => {
+  const { projectId } = req.params;
+  const { memberId} = req.body;
+
+  if(!projectId){
+    return res.status(402).json(new ApiError(402,"Project is not present."))
+  }
+  if(!memberId){
+    return res.status(402).json(new ApiError(402,"member id is not prensent."))
+  }
+
+  const isProjectExsit = await Project.findById(projectId);
+  if(!isProjectExsit){
+    return res.status(404).json(new ApiError(404,"Project not found."))
+  }
+
+  const deleteProjectMember = await ProjectMember.deleteOne({
+      project:projectId,
+      user:memberId 
   })
-  
-  const getProjectMembers = async (req, res) => {
-    // get project members
-  };
-  
-  const addMemberToProject = async (req, res) => {
-    // add member to project
-  };
-  
-  const deleteMember = async (req, res) => {
-    // delete member from project
-  };
-  
-  const updateMemberRole = async (req, res) => {
-    // update member role
-  };
-  
-  export {
-    addMemberToProject,
-    createProject,
-    deleteMember,
-    deleteProject,
-    getProjectById,
-    getProjectMembers,
-    getProjects,
-    updateMemberRole,
-    updateProject,
-  };
-  
+
+  if(!deleteMember){
+    return res.status(500).json(new ApiError(500,"Project "))
+  }
+
+  return res.status(200).json(new ApiResponse(200,"Project member is deleted.",deleteProjectMember));
+});
+
+const updateMemberRole = asyncHandler(async (req, res) => {
+  const { memberId } = req.params;
+  const { role } = req.body;
+
+  const userId = req.user._id;
+  //check if user is admin or project admin
+  const user = await User.findById(userId).select("role");
+  if (user.role !== "admin" || user.role !== "project_admin") {
+    throw new ApiError(
+      403,
+      "You are not authorized to update role of this member",
+    );
+  }
+
+  const updatedMember = await ProjectMember.findByIdAndUpdate(
+    {
+      _id: memberId,
+    },
+    {
+      $set: {
+        role,
+      },
+    },
+    { new: true }, // returns the updated document
+  );
+  if (!updatedMember) {
+    throw new ApiError(404, "Member not found");
+  }
+  return res
+    .status(200)
+    .json(new ApiResponse(200, "Member updated", updatedMember));
+});
+
+export {
+  addMemberToProject,
+  createProject,
+  deleteMember,
+  deleteProject,
+  getProjectById,
+  getProjectMembers,
+  getProjects,
+  updateMemberRole,
+  updateProject,
+};

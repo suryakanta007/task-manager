@@ -14,7 +14,7 @@ export const isAuth = async (req,res,next)=>{
    try {
      const decoded = await jwt.verify(accessToken,process.env.ACCESS_TOKEN_SECRET);
      const user = await User.findById(decoded._id).select("-password -refreshToken");
-  
+    
      if(!user){
         return res.status(402).json(new ApiError(402,"User not found , unauthorized."))
      }
