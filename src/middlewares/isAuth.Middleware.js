@@ -7,8 +7,7 @@ import { errorMonitor } from "events";
 export const isAuth = async (req,res,next)=>{
     const {accessToken} = req.cookies;
     if(!accessToken){
-      console.log(new ApiError(400,"AccessToken is expiryed"))
-        return res.status(400).json(new ApiError(400,"AccessToken is expiryed"))
+       next(new ApiError(400,"AccessToken is expiryed"));
     }
     
    try {

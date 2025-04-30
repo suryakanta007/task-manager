@@ -296,14 +296,14 @@ const changeCurrentPassword = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, "Password changed successfully."));
 });
 
-const getCurrentUser = asyncHandler(async (req, res) => {
+const getCurrentUser = asyncHandler(async (req, res, next) => {
     const { _id } = req.user;
     const user = await User.findById(_id).select("-password -refreshToken");
     if(!user){
-        return res.status(404).json(new ApiError(404, "User not found."))
+      return next(new ApiError(404, "User not found."));
     }
     return res.status(200).json(new ApiResponse(200, "User found successfully.", user));
-});
+  });
 
 
 export { registerUser, veryfiEmail, loginUser, forgetPassword, resetPassword, logoutUser, refreshAccessTokenHandler, resendEmailVerification, changeCurrentPassword,getCurrentUser }
