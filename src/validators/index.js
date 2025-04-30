@@ -88,5 +88,37 @@ const changePasswordValidator = () => {
 }
 
 
+// Task Validators:-
 
-export { userRegistationValidator, userLoginValidator, resetPasswordValidator,changePasswordValidator }
+const createTaskValidator = () => {
+    return [
+        body("title")
+            .trim()
+            .notEmpty().withMessage("Title is required.")
+            .isLength({ max: 70 }).withMessage("Title can't exceed 30 char.")
+            .isLength({ min: 3 }).withMessage("Title should be atleast 3.")
+        ,
+        body("description")
+            .trim()
+            .notEmpty().withMessage("Description is required.")
+            .isLength({ max: 300 }).withMessage("Description can't exceed 100 char.")
+            .isLength({ min: 3 }).withMessage("Description should be atleast 3.")
+        
+    ]
+}
+
+const updateTaskValidator = ()=>{
+    [
+        body("title")
+            .trim()
+            .isLength({ max: 70 }).withMessage("Title can't exceed 30 char.")
+            .isLength({ min: 3 }).withMessage("Title should be atleast 3.")
+        ,
+        body("description")
+            .trim()
+            .isLength({ max: 300 }).withMessage("Description can't exceed 100 char.")
+            .isLength({ min: 3 }).withMessage("Description should be atleast 3.")
+    ]
+}
+
+export { userRegistationValidator, userLoginValidator, resetPasswordValidator,changePasswordValidator,createTaskValidator,updateTaskValidator}
