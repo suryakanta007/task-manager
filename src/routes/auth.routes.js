@@ -17,7 +17,7 @@ router.route("/resend-emailverification").post(resendEmailVerification);
 // Potected Routes 
 router.route("/logout").post(isAuth,logoutUser);
 router.route("/change-password").post(isAuth,changePasswordValidator(),validate,changeCurrentPassword);
-router.route("/getuser").get(isAuth,getCurrentUser);
+router.route("/getuser").get(isAuth,getCurrentUser);    
 
 
 export default router
